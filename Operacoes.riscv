@@ -1,0 +1,209 @@
+.data 
+
+str1:
+.string "ADD: "
+str2:
+.string "SUB: "
+str3:
+.string "AND: "
+str4:
+.string "OR: "
+str5:
+.string "XOR: "
+str6:
+.string "MASK: "
+str7:
+.string "SLL("
+str8:
+.string "): "
+str9:
+.string "SRL("
+
+.text
+.globl main
+
+main:
+
+#SCANF
+li a7,5
+ecall
+mv a1,a0
+
+#SCANF
+li a7,5
+ecall
+mv a2,a0
+
+#SCANF
+li a7,5
+ecall
+mv a3,a0
+
+#PRINTF(STRING1)
+la a0,str1
+li a7,4
+ecall
+
+#ADIÇÃO
+add t1,a1,a2
+mv a0,t1
+
+#PRINTF(ADIÇÃO)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING2)
+la a0,str2
+li a7,4
+ecall
+
+#SUBTRAÇÃO
+sub t1,a1,a2
+mv a0,t1
+
+#PRINTF(SUBTRAÇÃO)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING3)
+la a0,str3
+li a7,4
+ecall
+
+#AND
+and t1,a1,a2
+mv a0,t1
+
+#PRINTF(AND)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING4)
+la a0,str4
+li a7,4
+ecall
+
+#OR
+or t1,a1,a2
+mv a0,t1
+
+#PRINTF(OR)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING5)
+la a0,str5
+li a7,4
+ecall
+
+#XOR
+xor t1,a1,a2
+mv a0,t1
+
+#PRINTF(XOR)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING6)
+la a0,str6
+li a7,4
+ecall
+
+#MASK
+andi a4,a3,31
+mv a0,a4
+
+#PRINTF(MASK)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING7)
+la a0,str7
+li a7,4
+ecall
+
+#PRINTF NUM DENTRO DO PARENTESES
+mv a0,a4
+li a7,1
+ecall
+
+#PRINTF(STRING8)
+la a0,str8
+li a7,4
+ecall
+
+#SHIFT LEFT
+sll t1,a1,a4
+mv a0,t1
+
+#PRINTF(SHIFT LEFT)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#PRINTF(STRING9)
+la a0,str9
+li a7,4
+ecall
+
+#PRINTF NUM DENTRO DO PARENTESES
+mv a0,a4
+li a7,1
+ecall
+
+#PRINTF(STRING8)
+la a0,str8
+li a7,4
+ecall
+
+#SHIFT RIGHT
+srl t2,a2,a4
+mv a0,t2
+
+#PRINTF(SHIFT RIGHT)
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
+

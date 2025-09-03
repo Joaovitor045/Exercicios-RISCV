@@ -1,0 +1,147 @@
+.data
+
+str1:
+.string "Entradas invalidas.\n"
+str2:
+.string "O modulo nao eh primo.\n"
+str3:
+.string "A exponencial modular "
+str4:
+.string " elevado a "
+str5:
+.string " (mod "
+str6:
+.string ") eh "
+str7:
+.string "."
+
+.text
+.globl main
+
+main:
+
+#SCANF
+li a7,5
+ecall
+mv a1,a0
+
+#SCANF
+li a7,5
+ecall
+mv a2,a0
+
+#SCANF
+li a7,5
+ecall
+mv a3,a0
+
+ble a1,zero,entradaInv #IF A1 == 0 || A1 < 0,RETURN(Entrada Inválida)
+ble a2,zero,entradaInv #IF A1 == 0 || A1 < 0,RETURN(Entrada Inválida)
+ble a3,zero,entradaInv #IF A1 == 0 || A1 < 0,RETURN(Entrada Inválida)
+
+li t1,1 # K = 1
+addi t0,a3,-1 # I = A3 - 1
+loop:
+
+beq t0,t1,primo #IF TO = 1,É PRIMO
+
+rem t4,a3,t0 # RESTO DA DIVISÃO DE A3 COM I
+
+beqz t4,naoPrimo # IF DIVISORES = 0, TEM DIVISOR E N É PRIMO
+
+addi t0,t0,-1 # I--
+
+j loop
+
+
+primo:
+
+addi t0,a2,0 # INICIALIZA T0 COM A2
+addi t1,a1,0 # INICIALIZA T1 COM A1
+li t3,1 # INICIALIZA T3 COM 1
+
+exponencial:
+
+beq t0,t3,stop # IF T0 == 1,STOP
+mul t1,t1,a1 # MULTIPLICA T1 POR A1 
+remu t1,t1,a3 # MOD PARA O NUMERO NAO CRESCER
+addi t0,t0,-1 # I--
+
+j exponencial
+
+stop:
+
+#PRINTF(STRING3)
+la a0,str3
+li a7,4
+ecall
+
+#PRINTF(A1)
+mv a0,a1
+li a7,1
+ecall
+
+#PRINTF(STRING4)
+la a0,str4
+li a7,4
+ecall
+
+#PRINTF(A2)
+mv a0,a2
+li a7,1
+ecall
+
+#PRINTF(STRING5)
+la a0,str5
+li a7,4
+ecall
+
+#PRINTF(A3)
+mv a0,a3
+li a7,1
+ecall
+
+#PRINTF(STRING6)
+la a0,str6
+li a7,4
+ecall
+
+#PRINTF(A4)
+mv a0,t1
+li a7,1
+ecall
+
+#PRINTF(STRING7)
+la a0,str7
+li a7,4
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
+
+naoPrimo:
+
+#PRINTF(STRING2)
+la a0,str2
+li a7,4
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
+
+entradaInv:
+#PRINTF(STRING1)
+la a0,str1
+li a7,4
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall

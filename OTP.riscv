@@ -1,0 +1,186 @@
+# Cifra OTP (Bloco de Uso Único) em RISC-V Assembly
+# Implementação completa com conversão hexadecimal e operações XOR
+
+.data
+# Strings de entrada
+chave_hex: .string "00010203040506070809"
+texto_claro: .string "alo mundo!"
+buffer_resultado: .space 64     # Buffer para resultado
+buffer_temporario: .space 64    # Buffer temporário
+nova_linha: .string "\n"
+mensagem_resultado: .string "Resultado: "
+
+.text
+.globl _inicio
+
+_inicio:
+# Inicializar registradores
+la t0, chave_hex            # Endereço da chave hex
+la t1, texto_claro          # Endereço do texto claro
+la t2, buffer_resultado     # Endereço do buffer resultado
+
+# Chamar função principal
+jal ra, cifra_otp
+
+# Imprimir resultado
+li a7, 4                    # Syscall para imprimir string
+la a0, mensagem_resultado
+ecall
+
+li a7, 4                    # Syscall para imprimir string
+la a0, buffer_resultado
+ecall
+
+li a7, 4                    # Syscall para imprimir string
+la a0, nova_linha
+ecall
+
+# Encerrar programa
+li a7, 10                   # Syscall para sair
+ecall
+
+# Função principal da cifra OTP
+# Entrada: t0 = chave hex, t1 = texto claro, t2 = buffer resultado
+cifra_otp:
+addi sp, sp, -32            # Alocar espaço na pilha
+sw ra, 28(sp)               # Salvar endereço de retorno
+sw s0, 24(sp)               # Salvar registradores
+sw s1, 20(sp)
+sw s2, 16(sp)
+sw s3, 12(sp)
+sw s4, 8(sp)
+sw s5, 4(sp)
+
+mv s0, t0                   # s0 = ponteiro chave hex
+mv s1, t1                   # s1 = ponteiro texto claro
+mv s2, t2                   # s2 = ponteiro resultado
+li s3, 0                    # s3 = contador de bytes
+la s4, buffer_temporario    # s4 = buffer temporário para chave
+
+# Converter chave hexadecimal para bytes
+laco_converter_hex:
+lb t3, 0(s0)                # Carregar primeiro dígito hex
+beq t3, zero, conversao_terminada  # Se zero, fim da string
+addi s0, s0, 1              # Próximo caractere
+lb t4, 0(s0)                # Carregar segundo dígito hex
+beq t4, zero, conversao_terminada  # Se zero, fim da string
+addi s0, s0, 1              # Próximo caractere
+
+# Converter primeiro dígito
+jal ra, hex_para_nibble
+mv t5, a0                   # t5 = primeiro nibble
+slli t5, t5, 4              # Deslocar 4 bits à esquerda
+
+# Converter segundo dígito
+mv a0, t4
+jal ra, hex_para_nibble
+or t5, t5, a0               # Combinar nibbles
+
+# Salvar byte convertido
+add t6, s4, s3              # Endereço no buffer
+sb t5, 0(t6)                # Salvar byte
+addi s3, s3, 1              # Incrementar contador
+j laco_converter_hex
+
+conversao_terminada:
+# Resetar contador para processar mensagem
+li s3, 0
+
+# Processar cada byte da mensagem
+laco_cifrar:
+lb t3, 0(s1)                # Carregar byte da mensagem
+beq t3, zero, cifragem_terminada  # Se zero, fim da string
+
+# Carregar byte correspondente da chave
+add t4, s4, s3              # Endereço na chave
+lb t4, 0(t4)                # Carregar byte da chave
+
+# Aplicar XOR
+xor t5, t3, t4              # t5 = mensagem XOR chave
+
+# Inverter todos os bits
+li t6, 0xFF
+xor t5, t5, t6              # t5 = ~(mensagem XOR chave)
+
+# Converter para hexadecimal
+srli t6, t5, 4              # Primeiro nibble
+andi t6, t6, 0xF
+mv a0, t6                   # Preparar parâmetro para função
+jal ra, nibble_para_hex
+add t0, s2, s3              # Posição no resultado
+slli t0, t0, 1              # Multiplicar por 2 (2 chars por byte)
+sb a0, 0(t0)                # Salvar primeiro dígito hex
+
+andi t6, t5, 0xF            # Segundo nibble
+mv a0, t6                   # Preparar parâmetro para função
+jal ra, nibble_para_hex
+sb a0, 1(t0)                # Salvar segundo dígito hex
+
+addi s1, s1, 1              # Próximo byte da mensagem
+addi s3, s3, 1              # Incrementar contador
+j laco_cifrar
+
+cifragem_terminada:
+# Adicionar terminador nulo
+slli t0, s3, 1              # Posição final (2 chars por byte)
+add t0, s2, t0
+sb zero, 0(t0)
+
+# Restaurar registradores
+lw s5, 4(sp)
+lw s4, 8(sp)
+lw s3, 12(sp)
+lw s2, 16(sp)
+lw s1, 20(sp)
+lw s0, 24(sp)
+lw ra, 28(sp)
+addi sp, sp, 32
+ret
+
+# Função para converter caractere hex para nibble
+# Entrada: a0 = caractere hex
+# Saída: a0 = valor nibble (0-15)
+hex_para_nibble:
+li t0, 48                   # '0'
+blt a0, t0, erro_hex
+li t0, 57                   # '9'
+ble a0, t0, digito_hex
+
+li t0, 65                   # 'A'
+blt a0, t0, erro_hex
+li t0, 70                   # 'F'
+ble a0, t0, maiuscula_hex
+
+li t0, 97                   # 'a'
+blt a0, t0, erro_hex
+li t0, 102                  # 'f'
+ble a0, t0, minuscula_hex
+
+erro_hex:
+li a0, 0                    # Retornar 0 em caso de erro
+ret
+
+digito_hex:
+addi a0, a0, -48            # Converter '0'-'9' para 0-9
+ret
+
+maiuscula_hex:
+addi a0, a0, -55            # Converter 'A'-'F' para 10-15
+ret
+
+minuscula_hex:
+addi a0, a0, -87            # Converter 'a'-'f' para 10-15
+ret
+
+# Função para converter nibble para caractere hex
+# Entrada: a0 = nibble (0-15)
+# Saída: a0 = caractere hex
+nibble_para_hex:
+li t0, 10
+blt a0, t0, nibble_digito
+addi a0, a0, 87             # Converter 10-15 para 'a'-'f'
+ret
+
+nibble_digito:
+addi a0, a0, 48             # Converter 0-9 para '0'-'9'
+ret

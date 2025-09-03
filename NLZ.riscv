@@ -1,0 +1,60 @@
+.text
+.globl main
+
+main:
+
+#SCANF
+li a7,5
+ecall
+mv a1,a0
+
+li a2,0 #INICIALIZAR VARIAVEL A2 COM 0
+
+beq a1,zero,return32 #IF A1 == 0,RETURN
+
+li t0, 31         #I = 31   
+
+loop: #FOR(I = 0; I < 0;NLZ++)
+
+blt t0,zero,stop #IF(T0 == 0,STOP)
+
+srl t1,a1,t0 #SHIFT PARA LER O NÚMERO
+andi t1,t1,1 #VER BIT NA POSIÇÃO T0
+
+bne t1,zero,stop #IF(T1 == 1,STOP)
+
+addi a2,a2,1 #NLZ++
+addi t0,t0,-1 #i--
+
+j loop 
+
+#PRINTF(NLZ)
+stop:
+mv a0,a2
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
+
+
+#PRINTF 32
+return32:
+li a0, 32
+li a7, 1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall

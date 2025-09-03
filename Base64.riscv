@@ -1,0 +1,227 @@
+.data
+# Tabela de decodificacao Base64
+tabela_base64: .string "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+# Buffer para entrada (ate 48 caracteres)
+buffer_entrada: .space 49
+
+# Buffer para saida hexadecimal (ate 96 caracteres)
+buffer_saida: .space 97
+
+# Tabela de conversao para hexadecimal
+chars_hex: .string "0123456789abcdef"
+
+nova_linha: .string "\n"
+
+.text
+.globl _start
+
+_start:
+# Le a string Base64 da entrada
+li a7, 63           # syscall read
+li a0, 0            # stdin
+la a1, buffer_entrada # buffer
+li a2, 48           # maximo 48 bytes
+ecall
+
+# Remove newline do final da entrada
+la t0, buffer_entrada
+add t1, t0, a0      # t1 = buffer + bytes_lidos
+addi t1, t1, -1     # t1 = ultimo caractere
+sb zero, 0(t1)      # substitui newline por null
+
+# Processa a decodificacao
+la a0, buffer_entrada
+la a1, buffer_saida
+call base64_para_hex
+
+# Calcula o tamanho da saida
+la a0, buffer_saida
+call tamanho_string
+mv a2, a0           # a2 = tamanho da string
+
+# Escreve a saida
+li a7, 64           # syscall write
+li a0, 1            # stdout
+la a1, buffer_saida
+ecall
+
+# Escreve newline
+li a7, 64
+li a0, 1
+la a1, nova_linha
+li a2, 1
+ecall
+
+# Encerra o programa
+li a7, 93           # syscall exit
+li a0, 0            # exit code
+ecall
+
+# Funcao: base64_para_hex
+# Entrada: a0 = ponteiro para string Base64
+# Saida: a1 = ponteiro para buffer de saida
+base64_para_hex:
+addi sp, sp, -32
+sw ra, 28(sp)
+sw s0, 24(sp)
+sw s1, 20(sp)
+sw s2, 16(sp)
+sw s3, 12(sp)
+sw s4, 8(sp)
+sw s5, 4(sp)
+sw s6, 0(sp)
+
+mv s0, a0           # s0 = ponteiro para entrada
+mv s1, a1           # s1 = ponteiro para saida
+li s2, 0            # s2 = acumulador de bits
+li s3, 0            # s3 = contador de bits
+li s4, 0            # s4 = posicao na saida
+
+laco_decodificar:
+lb t0, 0(s0)        # carrega proximo caractere
+beqz t0, fim_decodificar # se for null, termina
+
+# Ignora caracteres de padding '='
+li t1, 61           # ASCII '='
+beq t0, t1, proximo_char
+
+# Converte caractere Base64 para valor (0-63)
+mv a0, t0
+call char_base64_para_valor
+mv t1, a0           # t1 = valor do caractere
+
+# Adiciona 6 bits ao acumulador
+slli s2, s2, 6      # shift left 6 bits
+or s2, s2, t1       # adiciona novo valor
+addi s3, s3, 6      # incrementa contador de bits
+
+# Se temos 8 ou mais bits, extrai um byte
+li t2, 8
+blt s3, t2, proximo_char
+
+# Extrai byte mais significativo
+addi t3, s3, -8     # t3 = bits extras
+srl t4, s2, t3      # t4 = byte extraido
+andi t4, t4, 0xFF   # mascara para 8 bits
+
+# Converte byte para hex e armazena
+mv a0, t4
+add a1, s1, s4
+call byte_para_hex
+addi s4, s4, 2      # incrementa posicao (2 chars hex)
+
+# Remove bits processados do acumulador
+li t5, 1
+sll t5, t5, t3      # t5 = 2^(bits_extras)
+addi t5, t5, -1     # t5 = mascara
+and s2, s2, t5      # mantem apenas bits extras
+mv s3, t3           # atualiza contador
+
+proximo_char:
+addi s0, s0, 1      # proximo caractere
+j laco_decodificar
+
+fim_decodificar:
+# Adiciona null terminator
+add t0, s1, s4
+sb zero, 0(t0)
+
+# Restaura registradores
+lw s6, 0(sp)
+lw s5, 4(sp)
+lw s4, 8(sp)
+lw s3, 12(sp)
+lw s2, 16(sp)
+lw s1, 20(sp)
+lw s0, 24(sp)
+lw ra, 28(sp)
+addi sp, sp, 32
+ret
+
+# Funcao: char_base64_para_valor
+# Entrada: a0 = caractere Base64
+# Saida: a0 = valor (0-63)
+char_base64_para_valor:
+mv t0, a0
+
+# A-Z (65-90) -> 0-25
+li t1, 65
+blt t0, t1, verifica_minuscula
+li t1, 90
+bgt t0, t1, verifica_minuscula
+addi a0, t0, -65
+ret
+
+verifica_minuscula:
+# a-z (97-122) -> 26-51
+li t1, 97
+blt t0, t1, verifica_digito
+li t1, 122
+bgt t0, t1, verifica_digito
+addi a0, t0, -71    # -97 + 26
+ret
+
+verifica_digito:
+# 0-9 (48-57) -> 52-61
+li t1, 48
+blt t0, t1, verifica_mais
+li t1, 57
+bgt t0, t1, verifica_mais
+addi a0, t0, 4      # -48 + 52
+ret
+
+verifica_mais:
+# + (43) -> 62
+li t1, 43
+bne t0, t1, verifica_barra
+li a0, 62
+ret
+
+verifica_barra:
+# / (47) -> 63
+li t1, 47
+bne t0, t1, char_invalido
+li a0, 63
+ret
+
+char_invalido:
+li a0, 0            # retorna 0 para caracteres invalidos
+ret
+
+# Funcao: byte_para_hex
+# Entrada: a0 = byte (0-255)
+# Saida: a1 = ponteiro para buffer (2 chars)
+byte_para_hex:
+# Extrai nibble alto
+srli t0, a0, 4
+andi t0, t0, 0xF
+la t1, chars_hex
+add t1, t1, t0
+lb t0, 0(t1)
+sb t0, 0(a1)
+
+# Extrai nibble baixo
+andi t0, a0, 0xF
+la t1, chars_hex
+add t1, t1, t0
+lb t0, 0(t1)
+sb t0, 1(a1)
+
+ret
+
+# Funcao: tamanho_string
+# Entrada: a0 = ponteiro para string
+# Saida: a0 = comprimento da string
+tamanho_string:
+mv t0, a0
+li t1, 0
+laco_tamanho:
+lb t2, 0(t0)
+beqz t2, fim_tamanho
+addi t0, t0, 1
+addi t1, t1, 1
+j laco_tamanho
+fim_tamanho:
+mv a0, t1
+ret

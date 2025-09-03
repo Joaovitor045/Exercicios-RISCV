@@ -1,0 +1,71 @@
+.data
+str:
+.string "entrada invalida.\n"
+
+.text
+.globl main
+
+main:
+
+#SCANF
+li a7,5
+ecall
+mv a1,a0
+
+li a2,1 # INICIALIZAR A2 COM 1
+li a3,0 # INICIALIZAR A3 COM 0
+
+ble a1,a2,entradaInv #IF A1 == 1 || A1 < 1,RETURN(Entrada Inválida)
+
+loop:
+beq a1,a2,stop # IF A1 == 1, STOP
+andi t1,a1, 1 # T1 = A1 AND 1
+bne t1,zero,impar # IF T1 != 0, ENTÃO A1 É IMPAR
+beq t1,zero,par # IF T1 = 0, ENTÃO A1 É PAR
+
+
+par:
+
+srli a1,a1,1 # SHIFT R (DIVIDE POR 2)
+
+addi a3,a3,1 # I ++
+
+j loop
+
+impar:
+
+# MULTIPLICA POR 3 E SOMA 1
+slli t1,a1,0
+slli a1,a1,1
+add a1,a1,t1
+addi a1,a1,1
+
+addi a3,a3,1 # I++
+
+j loop
+
+stop:
+
+#PRINTF A3
+mv a0,a3
+li a7,1
+ecall
+
+#PRTINTF(\N)
+li a0, 10 
+li a7, 11
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
+
+entradaInv:
+#PRINTF(STRING)
+la a0,str
+li a7,4
+ecall
+
+#ENCERRAR PROGRAMA    
+li a7, 10
+ecall
